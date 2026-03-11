@@ -267,7 +267,7 @@ function setupEntropy(n) {
       </tbody>
     </table>`;
 
-  const en = Entropy.createInstance();
+  const en = UEntropy.createInstance();
   const data = en.init();
   data.rows = buildRows(n);
 

@@ -10,7 +10,7 @@ The core idea is simple: wrap your data in `en.init()`, put `en-mark` on the ele
 
 <script src="dist/index.global.js"></script>
 <script>
-  window.data = Entropy.default.init();
+  window.data = UEntropy.default.init();
   data.count = 0;
 </script>
 ```
@@ -20,15 +20,15 @@ The core idea is simple: wrap your data in `en.init()`, put `en-mark` on the ele
 ## Installation
 
 ```bash
-npm install entropy-js
+npm install uentropy
 ```
 
 Or drop the IIFE build straight into your HTML — no bundler, no `node_modules`, no build step for consumers:
 
 ```html
-<script src="https://cdn.jsdelivr.net/npm/entropy-js/dist/index.global.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/uentropy/dist/index.global.js"></script>
 <script>
-  const en = Entropy.default;
+  const en = UEntropy.default;
   window.data = en.init();
 </script>
 ```
@@ -36,7 +36,7 @@ Or drop the IIFE build straight into your HTML — no bundler, no `node_modules`
 ESM import for bundled projects:
 
 ```js
-import en from 'entropy-js';
+import en from 'uentropy';
 const data = en.init();
 ```
 
@@ -256,7 +256,7 @@ Removes all event listeners, clears watchers, marks the instance as destroyed. U
 The default export is a singleton — fine for most pages. For isolated widgets or micro-frontends that need separate reactive scopes:
 
 ```js
-import { createInstance } from 'entropy-js';
+import { createInstance } from 'uentropy';
 
 const enA = createInstance();
 const enB = createInstance();
