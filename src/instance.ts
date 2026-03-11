@@ -3,7 +3,7 @@ import type { EntropyContext } from './context';
 import type { Prefixed } from './types';
 import type { Directive, Watcher } from './types';
 import { enPrefix } from './symbols';
-import { reactive, bootstrapDirectives, update, batch } from './core';
+import { reactive, bootstrapDirectives, setupObserver, update, batch } from './core';
 import { watch, unwatch } from './watchers';
 import { registerDirective } from './directives/index';
 import { computed } from './computed';
@@ -48,6 +48,7 @@ export class EntropyInstance {
     }
 
     registerTemplates();
+    setupObserver(this.ctx);
 
     if (!this.readyStateHandler) {
       this.readyStateHandler = () => {
@@ -214,6 +215,9 @@ export class EntropyInstance {
     this.ctx.watchers.clear();
     this.ctx.deps.map.clear();
     this.ctx.deps.versions.clear();
+    this.ctx.elementCache.clear();
+    this.ctx.observer?.disconnect();
+    this.ctx.observer = null;
     this.ctx.data = null;
   }
 }

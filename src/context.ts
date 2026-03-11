@@ -37,6 +37,14 @@ export interface EntropyContext {
   batchQueue: Array<() => void> | null;
   /** Set to true after destroy() is called – ignores further updates */
   destroyed: boolean;
+  /**
+   * Cache of querySelectorAll results keyed by query string.
+   * Populated lazily, cleared automatically by the MutationObserver
+   * whenever the DOM changes.
+   */
+  elementCache: Map<string, Element[]>;
+  /** Watches the document for DOM mutations to invalidate elementCache. */
+  observer: MutationObserver | null;
 }
 
 // ─── Factory ──────────────────────────────────────────────────────────────────
@@ -56,5 +64,7 @@ export function createContext(): EntropyContext {
     computedResultFns: new WeakSet(),
     batchQueue: null,
     destroyed: false,
+    elementCache: new Map(),
+    observer: null,
   };
 }

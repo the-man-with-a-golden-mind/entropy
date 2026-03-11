@@ -22,6 +22,8 @@ import {
   removeDependentsFor,
   bumpVersion,
   isCurrentVersion,
+  clearDepsForKey,
+  registerTrackedDeps,
 } from './computed';
 import { callWatchers } from './watchers';
 import { getValue } from './dom/queries';
@@ -42,6 +44,42 @@ export function bootstrapDirectives(ctx: EntropyContext): void {
   );
   ctx.directives.set('if', conditionals.if);
   ctx.directives.set('ifnot', conditionals.ifnot);
+}
+
+// ─── Element cache ────────────────────────────────────────────────────────────
+
+/**
+ * Attaches a MutationObserver that clears ctx.elementCache whenever the DOM
+ * changes. Without this, cached querySelectorAll results would become stale
+ * after nodes are inserted or removed (e.g. en-if, array updates).
+ *
+ * Safe to call multiple times – a second call is a no-op.
+ */
+export function setupObserver(ctx: EntropyContext): void {
+  if (ctx.observer || typeof MutationObserver === 'undefined') return;
+  ctx.observer = new MutationObserver(() => ctx.elementCache.clear());
+  ctx.observer.observe(document, { childList: true, subtree: true });
+}
+
+/**
+ * Runs querySelectorAll with a per-context result cache.
+ * Results are only cached when the search root is the whole document —
+ * scoped searches (e.g. inside a single array item) are never cached because
+ * their root element may itself be transient.
+ */
+function queryAll(
+  ctx: EntropyContext,
+  root: Document | Element,
+  query: string,
+): Element[] {
+  if (!(root instanceof Document)) {
+    return Array.from(root.querySelectorAll(query));
+  }
+  const cached = ctx.elementCache.get(query);
+  if (cached) return cached;
+  const result = Array.from(root.querySelectorAll(query));
+  ctx.elementCache.set(query, result);
+  return result;
 }
 
 // ─── reactive() ───────────────────────────────────────────────────────────────
@@ -373,7 +411,7 @@ function callDirectivesForArray(
   }
 
   const elsArrays: Element[][] = [];
-  Array.from(target.querySelectorAll(query)).forEach(plc => {
+  queryAll(ctx, target, query).forEach(plc => {
     const els = initializeArrayElements(ctx, plc, placeholderKey, value);
     elsArrays.push(els);
   });
@@ -461,7 +499,7 @@ function callDirectivesForLeaf(
       ? `[${attrName}^='${key}:']`
       : `[${attrName}='${key}']`;
 
-    root.querySelectorAll(query).forEach(el => {
+    queryAll(ctx, root, query).forEach(el => {
       const param = getParam(el, attrName, !!isParametric);
       cb({ el, value, key, isDelete, parent, prop, param });
     });

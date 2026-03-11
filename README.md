@@ -63,6 +63,35 @@ Sets `textContent` to the value. For objects, serialises to JSON.
 <pre  en-mark="config"></pre>
 ```
 
+### `en-model`
+
+Two-way binding. Keeps a reactive key and an input element in sync — DOM
+updates when data changes, and data updates when the user interacts with the
+element. No `oninput` handler needed.
+
+```html
+<input   en-model="name" />
+<input   type="number"   en-model="qty" />
+<input   type="checkbox" en-model="agreed" />
+<input   type="radio"    en-model="size" value="M" />
+<select  en-model="country">…</select>
+<textarea en-model="bio"></textarea>
+```
+
+Works across all standard input types:
+
+| Element | Event listened | Data type written |
+|---|---|---|
+| `input[type=text\|email\|…]` | `input` | string |
+| `input[type=number]` | `input` | number |
+| `input[type=checkbox]` | `change` | boolean |
+| `input[type=radio]` | `change` | string (the `value` attr) |
+| `select` | `change` | string |
+| `textarea` | `input` | string |
+
+Listeners are attached once per element and are garbage-collected with the
+element — no manual cleanup required.
+
 ### `en-if` / `en-ifnot`
 
 Must be on a `<template>` element. Entropy moves the template's content into the DOM when the condition is met, and puts it back when it isn't.
@@ -263,11 +292,10 @@ data.items = data.items.filter(x => x.done);
 
 **`en-mark` on objects serialises to JSON.** There is no template syntax inside a mark value. If you need conditional rendering or structured output, use custom directives or nested elements with their own marks.
 
-**One-way binding.** Directives update the DOM when data changes. They do not listen to DOM events and push changes back. Wire inputs yourself:
-
-```html
-<input oninput="data.name = this.value" en-mark="name" />
-```
+**`en-model` listens to a single event per element.** The event is chosen
+based on the input type (`input` for text/number/textarea, `change` for
+checkboxes, radios, and selects). If you need a different event for a custom
+element, register a custom directive instead.
 
 **Web Components require Shadow DOM support.** Named `<template>` registration uses `attachShadow`. This works in all modern browsers but has no fallback for older environments.
 

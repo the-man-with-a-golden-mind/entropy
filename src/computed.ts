@@ -29,26 +29,13 @@ export function isUserComputed(fn: unknown): fn is Function {
   return typeof fn === 'function' && IS_COMPUTED in fn;
 }
 
-// ─── Dependency tracking ──────────────────────────────────────────────────────
+// ─── Dep graph helpers ────────────────────────────────────────────────────────
 
 /**
- * Evaluates `value` to discover which reactive keys it reads, then stores
- * those dependencies in `ctx.deps.map` so the computed can be re-evaluated
- * when any dependency changes.
- *
- * **Idempotent**: clears prior dependency registrations for this exact
- * computed function before re-registering, preventing duplicate updates.
+ * Removes all dep-graph entries whose output key matches `key`.
+ * Called before re-registering deps so the graph never accumulates stale edges.
  */
-export function setDependents(
-  ctx: EntropyContext,
-  value: Prefixed<Function>,
-  key: string,
-  parent: Prefixed<object>,
-  prop: string,
-): void {
-  // ── 1. Remove stale dep registrations for this output key ────────────────
-  // We match by `d.key === key` (the computed's output key) so that re-setting
-  // the same computed (even via a freshly bound function) never duplicates entries.
+export function clearDepsForKey(ctx: EntropyContext, key: string): void {
   for (const [depKey, list] of ctx.deps.map) {
     const filtered = list.filter(d => d.key !== key);
     if (filtered.length === 0) {
@@ -57,8 +44,46 @@ export function setDependents(
       ctx.deps.map.set(depKey, filtered);
     }
   }
+}
 
-  // ── 2. Re-evaluate to capture current dependencies ────────────────────────
+/**
+ * Reads `ctx.deps.set` (populated during a tracked evaluation) and writes
+ * edges into `ctx.deps.map` for each accessed key.
+ */
+export function registerTrackedDeps(
+  ctx: EntropyContext,
+  key: string,
+  computedFn: Prefixed<Function>,
+  parent: Prefixed<object>,
+  prop: string,
+): void {
+  const dependent: ComputedDep = { key, computed: computedFn, parent, prop };
+  for (const dep of ctx.deps.set) {
+    const list = ctx.deps.map.get(dep) ?? [];
+    list.push(dependent);
+    ctx.deps.map.set(dep, list);
+  }
+}
+
+// ─── Dependency tracking ──────────────────────────────────────────────────────
+
+/**
+ * Evaluates `value` to discover which reactive keys it reads, then stores
+ * those dependencies in `ctx.deps.map` so the computed can be re-evaluated
+ * when any dependency changes.
+ *
+ * Used on *initial assignment* only. Re-evaluations go through `runComputed`
+ * in core.ts which tracks deps inline during the actual execution.
+ */
+export function setDependents(
+  ctx: EntropyContext,
+  value: Prefixed<Function>,
+  key: string,
+  parent: Prefixed<object>,
+  prop: string,
+): void {
+  clearDepsForKey(ctx, key);
+
   ctx.deps.isEvaluating = true;
   ctx.deps.set.clear();
   try {
@@ -70,14 +95,8 @@ export function setDependents(
     ctx.deps.isEvaluating = false;
   }
 
-  // ── 3. Register this computed as a dependent of each key it read ──────────
-  const dependent: ComputedDep = { key, computed: value, parent, prop };
-
-  for (const dep of ctx.deps.set) {
-    const list = ctx.deps.map.get(dep) ?? [];
-    list.push(dependent);
-    ctx.deps.map.set(dep, list);
-  }
+  registerTrackedDeps(ctx, key, value, parent, prop);
+  ctx.deps.set.clear();
 }
 
 // ─── Computed update propagation ──────────────────────────────────────────────
