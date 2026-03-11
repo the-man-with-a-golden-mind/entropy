@@ -1,0 +1,53 @@
+{
+  "name": "entropy-js",
+  "version": "1.0.0",
+  "description": "Lightweight reactive DOM library – no build step required in consumers",
+  "author": "",
+  "license": "MIT",
+  "keywords": [
+    "reactive",
+    "dom",
+    "vanilla",
+    "proxy",
+    "web-components",
+    "no-build"
+  ],
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:bun": "bun test",
+    "test:coverage": "vitest run --coverage",
+    "prepublishOnly": "npm run build && npm run typecheck && npm run test"
+  },
+  "devDependencies": {
+    "@happy-dom/global-registrator": "^15.7.0",
+    "@vitest/coverage-v8": "^2.1.0",
+    "happy-dom": "^15.7.0",
+    "tsup": "^8.3.0",
+    "typescript": "^5.7.0",
+    "vitest": "^2.1.0"
+  }
+}

@@ -1,0 +1,4 @@
+[test]
+# Preload the DOM environment before any test file runs.
+# This gives bun test window/document/navigator via happy-dom.
+preload = ["./tests/setup.ts"]
