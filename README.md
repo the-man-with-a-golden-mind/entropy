@@ -22,6 +22,11 @@ The core idea is simple: wrap your data in `en.init()`, put `en-mark` on the ele
 </script>
 ```
 
+## AI reference for your model
+
+[AI REFerence](docs/ai.md)
+
+
 ## Installation
 
 ```bash
