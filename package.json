@@ -1,8 +1,8 @@
 {
   "name": "uentropy",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Lightweight reactive DOM library – no build step required in consumers",
-  "author": "",
+  "author": "Michal Majchrzak",
   "license": "MIT",
   "keywords": [
     "reactive",
