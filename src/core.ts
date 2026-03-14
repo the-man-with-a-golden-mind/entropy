@@ -72,7 +72,7 @@ function queryAll(
   root: Document | Element,
   query: string,
 ): Element[] {
-  if (!(root instanceof Document)) {
+  if (!(root instanceof Document) || !ctx.useCache) {
     return Array.from(root.querySelectorAll(query));
   }
   const cached = ctx.elementCache.get(query);

@@ -129,6 +129,24 @@ export class EntropyInstance {
     this.ctx.prefix = value.endsWith('-') ? value : value + '-';
   }
 
+  // ─── cache ─────────────────────────────────────────────────────────────────
+
+  /**
+   * Enables or disables the querySelectorAll result cache.
+   * Disabling trades a small performance cost for fully predictable DOM
+   * updates — useful when en-if and en-mark change in the same tick.
+   * Can be toggled at any time.
+   *
+   * @example
+   * ```ts
+   * en.cache(false); // always query live DOM
+   * ```
+   */
+  cache(enabled: boolean): void {
+    this.ctx.useCache = enabled;
+    if (!enabled) this.ctx.elementCache.clear();
+  }
+
   // ─── batch ─────────────────────────────────────────────────────────────────
 
   /**

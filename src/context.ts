@@ -45,6 +45,13 @@ export interface EntropyContext {
   elementCache: Map<string, Element[]>;
   /** Watches the document for DOM mutations to invalidate elementCache. */
   observer: MutationObserver | null;
+  /**
+   * When false, skips the elementCache entirely — every querySelectorAll runs
+   * fresh against the live DOM. Trades a small amount of performance for
+   * fully predictable updates after structural DOM changes.
+   * Default: true.
+   */
+  useCache: boolean;
 }
 
 // ─── Factory ──────────────────────────────────────────────────────────────────
@@ -66,5 +73,6 @@ export function createContext(): EntropyContext {
     destroyed: false,
     elementCache: new Map(),
     observer: null,
+    useCache: false,
   };
 }
