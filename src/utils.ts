@@ -34,6 +34,10 @@ export function isPrefixedObject(value: unknown): value is Prefixed<object> {
 export function clone<T>(target: T): T {
   if (target === null || typeof target !== 'object') return target;
 
+  // Array is the most common case — check before instanceof guards
+  if (Array.isArray(target)) {
+    return target.map(v => clone(v)) as unknown as T;
+  }
   if (target instanceof Date) {
     return new Date(target.getTime()) as unknown as T;
   }
@@ -47,9 +51,6 @@ export function clone<T>(target: T): T {
   }
   if (target instanceof Set) {
     return new Set([...target].map(v => clone(v))) as unknown as T;
-  }
-  if (Array.isArray(target)) {
-    return target.map(v => clone(v)) as unknown as T;
   }
 
   const result: Record<string, unknown> = Object.create(

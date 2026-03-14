@@ -72,7 +72,7 @@ function queryAll(
   root: Document | Element,
   query: string,
 ): Element[] {
-  if (!(root instanceof Document)) {
+  if (!(root instanceof Document) || !ctx.useCache) {
     return Array.from(root.querySelectorAll(query));
   }
   const cached = ctx.elementCache.get(query);
@@ -530,21 +530,18 @@ function ifOrIfNot(
     const children = Array.from(el.content.children);
     if (!children.length) return;
 
-    // Mark every child with the directive attr so they can be collected back
-    // into a template when the condition flips. Use a DocumentFragment so
-    // all children are inserted in a single DOM operation.
-    const fragment = document.createDocumentFragment();
     children.forEach(child => {
-      child.setAttribute(attrType, key);
-      syncNode(ctx, child, true);
-      fragment.appendChild(child.cloneNode(true));
+      const clone = child.cloneNode(true) as Element;
+      clone.setAttribute(attrType, key);
+      syncNode(ctx, clone, true);
+      el.before(clone);
     });
-    el.replaceWith(fragment);
+    el.remove();
   }
 
   if (!isShow && !isTemplate) {
-    // Collect this element AND any following siblings that share the same
-    // directive key (i.e. were part of the same multi-child template).
+    if (!el.parentNode) return;
+
     const siblings: Element[] = [el];
     let next = el.nextElementSibling;
     while (next && next.getAttribute(ctx.prefix + type) === key) {
@@ -559,7 +556,6 @@ function ifOrIfNot(
     const mark = el.getAttribute(attrMark);
     if (mark) temp.setAttribute(attrMark, mark);
 
-    // Replace first sibling with template, remove the rest
     el.replaceWith(temp);
     siblings.slice(1).forEach(s => s.remove());
   }
@@ -694,8 +690,12 @@ function sortArrayItemElements(
 ): void {
   const attrMark = ctx.prefix + 'mark';
   const templateKey = getKey('#', ((array as unknown as Record<symbol, string>)[enPrefix]) ?? '');
+  // Pre-compute the prefix once — e.g. 'items.#' → 'items.' — avoids per-item regex
+  const templatePrefix = templateKey.slice(0, -1);
+
   Array.from(document.querySelectorAll(`[${attrMark}="${templateKey}"]`)).forEach(template => {
-    const items: Element[] = [];
+    type ItemEntry = { el: Element; idx: number };
+    const items: ItemEntry[] = [];
     let prev = template.previousElementSibling;
     let isSorted = true;
     let lastIdx = -1;
@@ -708,27 +708,24 @@ function sortArrayItemElements(
       if (!k) continue;
       if (k === templateKey) break;
 
-      if (k.replace(/\d+$/, '#') === templateKey) {
-        items.push(curr);
-        if (isSorted) {
-          const idx = Number(k.slice(k.lastIndexOf('.') + 1) ?? -1);
-          if (lastIdx !== -1 && lastIdx !== idx + 1) isSorted = false;
-          lastIdx = idx;
+      if (k.startsWith(templatePrefix)) {
+        const idx = +(k.slice(templatePrefix.length));
+        if (!isNaN(idx)) {
+          items.push({ el: curr, idx });
+          if (isSorted) {
+            if (lastIdx !== -1 && lastIdx !== idx + 1) isSorted = false;
+            lastIdx = idx;
+          }
         }
       }
     }
 
     if (isSorted) return;
 
-    const sorted = [...items].sort((a, b) => {
-      const am = a.getAttribute(attrMark) ?? '';
-      const bm = b.getAttribute(attrMark) ?? '';
-      const ai = +(am.split('.').pop() ?? 0);
-      const bi = +(bm.split('.').pop() ?? 0);
-      return ai - bi;
-    });
-
-    sorted.forEach(el => template.before(el));
+    // Indices already available — no getAttribute calls during sort
+    items
+      .sort((a, b) => a.idx - b.idx)
+      .forEach(({ el }) => template.before(el));
   });
 }
 
@@ -803,13 +800,20 @@ function initializeClone(
 ): void {
   const key = getKey(idx, prefix);
 
+  // Build attrNames once to avoid repeated string concatenation inside loops
+  const attrNames: string[] = [];
   for (const attrSuffix of ctx.directives.keys()) {
     const attrName = ctx.prefix + attrSuffix;
+    attrNames.push(attrName);
     rewriteKey(clone, attrName, key, placeholderKey);
-    clone.querySelectorAll(`[${attrName}]`).forEach(child => {
-      rewriteKey(child, attrName, key, placeholderKey);
-    });
   }
+
+  // Single querySelectorAll('*') instead of one per directive
+  clone.querySelectorAll('*').forEach(child => {
+    for (const attrName of attrNames) {
+      rewriteKey(child, attrName, key, placeholderKey);
+    }
+  });
 }
 
 function rewriteKey(

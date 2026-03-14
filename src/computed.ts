@@ -109,22 +109,20 @@ export function getDependentsOf(
   ctx: EntropyContext,
   changedKey: string,
 ): ComputedDep[] {
-  const matched: ComputedDep[] = [...ctx.deps.map.entries()]
-    .filter(
-      ([k]) =>
-        k === changedKey ||
-        k.startsWith(changedKey + '.') ||
-        changedKey.startsWith(k + '.'),
-    )
-    .flatMap(([, list]) => list);
-
-  // Deduplicate by computed function reference
+  const result: ComputedDep[] = [];
   const seen = new Set<Function>();
-  return matched.filter(dep => {
-    if (seen.has(dep.computed)) return false;
-    seen.add(dep.computed);
-    return true;
-  });
+  const changedKeyDot = changedKey + '.';
+
+  for (const [k, list] of ctx.deps.map) {
+    if (k !== changedKey && !k.startsWith(changedKeyDot) && !changedKey.startsWith(k + '.')) continue;
+    for (const dep of list) {
+      if (!seen.has(dep.computed)) {
+        seen.add(dep.computed);
+        result.push(dep);
+      }
+    }
+  }
+  return result;
 }
 
 /**

@@ -61,13 +61,14 @@ export function callWatchers(
   changedValue: unknown,
   getValue: (k: string) => unknown,
 ): void {
+  // Fast path: exact key match via O(1) Map lookup
+  const exact = ctx.watchers.get(changedKey);
+  if (exact) exact.forEach(cb => cb(changedValue));
+
+  // Ancestor watchers: a parent key watching a child change
   for (const [watchedKey, watchers] of ctx.watchers) {
-    if (changedKey === watchedKey) {
-      watchers.forEach(cb => cb(changedValue));
-    } else if (changedKey.startsWith(watchedKey + '.')) {
-      // A child changed – call the watcher with the whole sub-tree value
-      const parentValue = getValue(watchedKey);
-      watchers.forEach(cb => cb(parentValue));
+    if (watchedKey !== changedKey && changedKey.startsWith(watchedKey + '.')) {
+      watchers.forEach(cb => cb(getValue(watchedKey)));
     }
   }
 }

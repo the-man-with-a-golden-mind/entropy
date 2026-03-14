@@ -123,3 +123,63 @@ describe('en-ifnot directive', () => {
     cleanup();
   });
 });
+
+describe('en-if / en-ifnot — multiple root children', () => {
+  it('inserts all children from a multi-child template', () => {
+    const { data, container, cleanup } = setup(
+      `<template en-if="show">
+        <input id="inp" type="email" />
+        <button id="btn">Submit</button>
+      </template>`
+    );
+    data.show = true;
+    expect(container.querySelector('#inp')).not.toBeNull();
+    expect(container.querySelector('#btn')).not.toBeNull();
+    cleanup();
+  });
+
+  it('removes all children when condition flips to false', () => {
+    const { data, container, cleanup } = setup(
+      `<template en-if="show">
+        <input id="inp" />
+        <button id="btn">Submit</button>
+      </template>`
+    );
+    data.show = true;
+    data.show = false;
+    expect(container.querySelector('#inp')).toBeNull();
+    expect(container.querySelector('#btn')).toBeNull();
+    expect(container.querySelector('template[en-if]')).not.toBeNull();
+    cleanup();
+  });
+
+  it('can toggle multiple times correctly', () => {
+    const { data, container, cleanup } = setup(
+      `<template en-if="show">
+        <p id="a">A</p>
+        <p id="b">B</p>
+        <p id="c">C</p>
+      </template>`
+    );
+    data.show = true;
+    expect(container.querySelectorAll('p').length).toBe(3);
+    data.show = false;
+    expect(container.querySelectorAll('p').length).toBe(0);
+    data.show = true;
+    expect(container.querySelectorAll('p').length).toBe(3);
+    cleanup();
+  });
+
+  it('en-ifnot inserts all children when value is falsy', () => {
+    const { data, container, cleanup } = setup(
+      `<template en-ifnot="busy">
+        <input id="inp" />
+        <button id="btn">Go</button>
+      </template>`
+    );
+    data.busy = false;
+    expect(container.querySelector('#inp')).not.toBeNull();
+    expect(container.querySelector('#btn')).not.toBeNull();
+    cleanup();
+  });
+});
