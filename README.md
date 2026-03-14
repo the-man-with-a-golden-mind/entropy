@@ -213,6 +213,64 @@ data.users = [
 ];
 ```
 
+
+### Handling events
+
+uentropy does not have a built-in event directive. The recommended patterns are:
+
+**Inline handlers via `window`** — simplest, works with `onclick`, `onsubmit`, etc.:
+
+```js
+window.data = en.init();
+
+window.addTodo = () => {
+  data.todos = [...data.todos, { text: data.draft }];
+  data.draft = '';
+};
+
+window.removeTodo = (id) => {
+  data.todos = data.todos.filter(t => t.id !== id);
+};
+```
+
+```html
+<button onclick="addTodo()">Add</button>
+<button onclick="removeTodo(42)">Remove</button>
+```
+
+**`addEventListener` with a local variable** — cleaner, no globals needed:
+
+```js
+const data = en.init();
+
+document.getElementById('add-btn').addEventListener('click', () => {
+  data.todos = [...data.todos, { text: data.draft }];
+  data.draft = '';
+});
+```
+
+**Event delegation** — one listener for a whole list:
+
+```js
+document.querySelector('ul').addEventListener('click', e => {
+  const btn = e.target.closest('[data-remove]');
+  if (!btn) return;
+  const id = +btn.dataset.remove;
+  data.todos = data.todos.filter(t => t.id !== id);
+});
+```
+
+```html
+<ul>
+  <li en-mark="todos.#">
+    <span en-mark="todos.#.text"></span>
+    <button data-remove="1">✕</button>
+  </li>
+</ul>
+```
+
+Event delegation is the most efficient pattern for lists — one listener regardless of how many items there are.
+
 ### Deleting keys
 
 Use the native `delete` operator. uentropy detects it and removes the corresponding element from the DOM.
